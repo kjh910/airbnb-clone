@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  backend:
+      build: 
+        context: ./app
+      container_name: airbnb_backend
+      volumes:
+        - ./app:/app
+      environment:
+        TZ: 'Asia/Tokyo'
+      ports:
+        - "4002:10042"
+      expose:
+        - "4002"
+      tty: true
+      networks:
+        - airbnb
+      depends_on:
+        - db
+      restart: always
+        
+  backend_nginx:
+      build:
+        context: ./web
+      container_name: airbnb_backend_nginx
+      ports:
+        - "10042:10042"
+      environment:
+        TZ: 'Asia/Tokyo'
+      volumes:
+        - ./web/conf:/etc/nginx/conf.d
+        - ./app/static:/usr/share/nginx/static:ro
+      networks:
+        - airbnb
+      depends_on:
+        - backend
+      restart: always
+
+  db:
+      build:
+        context: ./db
+      container_name: airbnb_db
+      ports:
+        - 5432:5432
+      networks:
+        - airbnb
+      volumes:
+        - ./db/lib:/var/lib/postgresql/data
+        - ./db/init:/docker-entrypoint-initdb.d
+      environment:
+        POSTGRES_USER: airbnb
+        POSTGRES_PASSWORD: airbnb
+        POSTGRES_DB: airbnb
+        PGDATA: /var/lib/postgresql/data/pgdata
+      restart: always
+  
+      
+networks:
+  airbnb:
+    name: airbnb
+    driver: bridge
