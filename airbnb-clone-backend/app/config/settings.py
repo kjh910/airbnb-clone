@@ -12,6 +12,9 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 
 from pathlib import Path
 import os
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,39 +29,62 @@ SECRET_KEY = 'django-insecure-ggulbb0z2g$&c95qv-@%8^o0altt$&rpoqm^e3fj!73v(fn&a)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
-DJANGO_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
+ALLOWED_HOSTS = [
+    "localhost",
+    "backend.airbnbclonetest.xyz",
 ]
 
-THIRD_PARTY_APPS = []
+RENDER_EXTERNAL_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME")
 
-PROJECT_APPS = [
-    'users',
-]
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 
 # Application definition
-
-INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + PROJECT_APPS
-
-MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+THIRD_PARTY_APPS = [
+    "rest_framework",
+    "rest_framework.authtoken",
+    "strawberry.django",
+    "corsheaders",
 ]
 
-ROOT_URLCONF = 'config.urls'
+CUSTOM_APPS = [
+    "common.apps.CommonConfig",
+    "users.apps.UsersConfig",
+    "rooms.apps.RoomsConfig",
+    "experiences.apps.ExperiencesConfig",
+    "categories.apps.CategoriesConfig",
+    "reviews.apps.ReviewsConfig",
+    "wishlists.apps.WishlistsConfig",
+    "bookings.apps.BookingsConfig",
+    "medias.apps.MediasConfig",
+    "direct_messages.apps.DirectMessagesConfig",
+]
+
+SYSTEM_APPS = [
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+]
+
+INSTALLED_APPS = SYSTEM_APPS + THIRD_PARTY_APPS + CUSTOM_APPS
+
+MIDDLEWARE = [
+    "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+]
+
+ROOT_URLCONF = "config.urls"
 
 TEMPLATES = [
     {
@@ -76,22 +102,29 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'config.wsgi.application'
+WSGI_APPLICATION = "config.wsgi.application"
 
 
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv("DB_NAME", "airbnb"),
-        'USER': os.getenv("DB_USER", "airbnb"),
-        'PASSWORD': os.getenv("DB_PASSWORD", "airbnb"),
-        'HOST': os.getenv("DB_HOST", "db"),
-        'PORT': os.getenv("DB_PORT", 5432),
+if DEBUG:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv("DB_NAME", "airbnb"),
+            'USER': os.getenv("DB_USER", "airbnb"),
+            'PASSWORD': os.getenv("DB_PASSWORD", "airbnb"),
+            'HOST': os.getenv("DB_HOST", "db"),
+            'PORT': os.getenv("DB_PORT", 5432),
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": dj_database_url.config(
+            conn_max_age=600,
+        )
+    }
 
 
 # Password validation
@@ -99,16 +132,16 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
 
@@ -116,9 +149,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "ko-kr"
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = "Asia/Seoul"
 
 USE_I18N = True
 
@@ -131,11 +164,61 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
+if not DEBUG:
+    STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+    STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# Auth
 
 AUTH_USER_MODEL = "users.User"
 
-CSRF_TRUSTED_ORIGINS = ["http://localhost:10042"]
+MEDIA_ROOT = "uploads"
+
+MEDIA_URL = "user-uploads/"
+
+PAGE_SIZE = 3
+
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+        "config.authentication.TrustMeBroAuthentication",
+        "rest_framework.authentication.TokenAuthentication",
+        "config.authentication.JWTAuthentication",
+    ],
+}
+
+if DEBUG:
+
+    CORS_ALLOWED_ORIGINS = ["http://localhost:10042"]
+    CSRF_TRUSTED_ORIGINS = ["http://localhost:10042"]
+
+else:
+    CORS_ALLOWED_ORIGINS = ["https://airbnbclonetest.xyz"]
+
+    CSRF_TRUSTED_ORIGINS = ["https://airbnbclonetest.xyz"]
+
+CORS_ALLOW_CREDENTIALS = True
+GH_SECRET = os.getenv("GH_SECRET")
+
+CF_ID = os.getenv("CF_ID")
+CF_TOKEN = os.getenv("CF_TOKEN")
+
+
+if not DEBUG:
+    SESSION_COOKIE_DOMAIN = ".airbnbclonetest.xyz"
+    CSRF_COOKIE_DOMAIN = ".airbnbclonetest.xyz"
+    sentry_sdk.init(
+        dsn="https://5344b5a4537c4c7bb8a18457d9905e05@o285966.ingest.sentry.io/4503890242961408",
+        integrations=[
+            DjangoIntegration(),
+        ],
+        traces_sample_rate=1.0,
+        send_default_pii=True,
+    )
