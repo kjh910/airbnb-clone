@@ -196,8 +196,8 @@ REST_FRAMEWORK = {
 
 if DEBUG:
 
-    CORS_ALLOWED_ORIGINS = ["http://localhost:10042"]
-    CSRF_TRUSTED_ORIGINS = ["http://localhost:10042"]
+    CORS_ALLOWED_ORIGINS = ["http://localhost:10052"]
+    CSRF_TRUSTED_ORIGINS = ["http://localhost:10042", "http://localhost:10052"]
 
 else:
     CORS_ALLOWED_ORIGINS = ["https://airbnbclonetest.xyz"]

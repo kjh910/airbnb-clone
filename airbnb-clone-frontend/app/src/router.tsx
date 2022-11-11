@@ -1,7 +1,8 @@
 import { createBrowserRouter } from "react-router-dom";
+import Home from "./components/pages/home/Home";
 import Root from "./components/Root";
-import Home from "./routes/Home";
-import NotFound from "./routes/NotFound";
+import NotFound from "./components/templetes/not-found/not-found";
+import RoomDetail from "./components/templetes/room-detail/room-detail";
 
 const router = createBrowserRouter([
   {
@@ -12,6 +13,10 @@ const router = createBrowserRouter([
       {
         path: "",
         element: <Home />,
+      },
+      {
+        path: "rooms/:roomPk",
+        element: <RoomDetail />,
       },
     ],
   },
